@@ -38,30 +38,35 @@
       queue
     (> (+ 1 start) (length items))))
 
-;; - Algorithm -
-;; iterate breadth first from both directions
-;; (keeping track of the name and route to get there as we go)
-;; -----------------
-;; from the starting node forward
-;; from the ending node backwards
-;; -----------------
-;; we'll alternate the direction at each round
+;; Route:
+;; find the shortest route from :from to :to given a
+;; network. The network is a mapping from nodes to their
+;; edges.
+;; ex: John - Kyle, Clay
+;;     Tyler - John, Matt
+;;     Kyle - John
+;;     Clay - Matt
+;;     Matt - Kyle, Tyler
 ;;
-;; Termination conditions
-;; 1. The next node (name) has already been seen from the other direction
-;;    - We've finished the route and can combine the two routes to get the full route
-;; 2. We cant progress (from either direction) to an unseen name
-;;    - (unseen from that same direction)
+;; Algorithm:
+;; Treat the network as a graph and do breadth first search.
+;; To speed up the completion of the correct path, do the search
+;; from the start and end at the same time.
+;;
+;; Search Termination Scenarios:
+;; 1. We find a name we've seen from the other side of the
+;;    search. We can connect the two paths for our solution.
+;; 2. We can't progress to an unseen node (unseen on the same
+;;    side of the search) on either search. We've hit the end
+;;    of the search from one side and there isn't an answer.
 (defun route (from to network)
   (let* ((seen-left (make-hash-table :test #'equal))
 	 (seen-right (make-hash-table :test #'equal))
 	 (next-left (make-queue `((,from ()))))
 	 (next-right (make-queue `((,to ()))))
-	 ;; we'll update this every round
 	 (direction :left)
 	 (solution-path))
-    (loop while (and (not (and (empty next-left) (empty next-right)))
-		     (not solution-path))
+    (loop until (or (empty next-left) (empty next-right) solution-path)
        do (let*  ((name-queue (if (equal direction :right) next-right next-left))
 		  (next (dequeue name-queue))
 		  (next-name (car next))
